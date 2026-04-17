@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/books/', include('books.urls')),
     path('api/', include('ingestion.urls')),
+    path('api/rag/', include('rag.urls')),
 ]

@@ -2,6 +2,7 @@ from books.models import Book
 from rag.services.embedding_service import get_embedding
 from rag.services.vector_store_service import add_document
 from rag.services.retrieval_service import retrieve_context
+from rag.services.llm_service import generate_answer
 
 
 def index_books():
@@ -23,9 +24,13 @@ def index_books():
 def answer_query(query: str):
     documents, metadatas = retrieve_context(query)
 
+    # 🔥 LLM step
+    answer = generate_answer(query, documents)
+
     return {
         "query": query,
-        "results": [
+        "answer": answer,
+        "sources": [
             {
                 "title": meta["title"],
                 "text": doc
