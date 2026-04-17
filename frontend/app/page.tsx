@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 
 type Message = {
   role: "user" | "assistant";
@@ -15,13 +16,36 @@ export default function Home() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // 🔥 auto scroll
+  // 🔥 Load chat history
   useEffect(() => {
+    const saved = localStorage.getItem("chat_history");
+    if (saved) setMessages(JSON.parse(saved));
+  }, []);
+
+  // 🔥 Persist chat history
+  useEffect(() => {
+    localStorage.setItem("chat_history", JSON.stringify(messages));
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  // 🔥 Typing animation
+  const typeMessage = async (text: string) => {
+    let current = "";
+    for (let i = 0; i < text.length; i++) {
+      current += text[i];
+
+      setMessages((prev) => {
+        const copy = [...prev];
+        copy[copy.length - 1].content = current;
+        return copy;
+      });
+
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  };
+
   const sendQuery = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || loading) return;
 
     const userMessage: Message = {
       role: "user",
@@ -43,19 +67,22 @@ export default function Home() {
 
       const data = await res.json();
 
+      // 🔥 placeholder assistant message
       const botMessage: Message = {
         role: "assistant",
-        content: data.answer,
+        content: "",
         sources: data.sources,
       };
 
       setMessages((prev) => [...prev, botMessage]);
+
+      await typeMessage(data.answer);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Error connecting to server.",
+          content: "❌ Error connecting to server.",
         },
       ]);
     }
@@ -72,35 +99,43 @@ export default function Home() {
 
       {/* CHAT AREA */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* 🔥 Empty state */}
+        {messages.length === 0 && (
+          <div className="text-neutral-500 text-center mt-20">
+            Ask questions about your documents 📚
+          </div>
+        )}
+
         {messages.map((msg, idx) => (
           <div key={idx} className="flex flex-col space-y-2">
+            {/* MESSAGE */}
             <div
-              className={`max-w-2xl px-4 py-3 rounded-xl ${
+              className={`max-w-2xl px-4 py-3 rounded-xl whitespace-pre-wrap ${
                 msg.role === "user"
                   ? "ml-auto bg-blue-600"
                   : "bg-neutral-800"
               }`}
             >
-              {msg.content}
+             <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
 
-            {/* 🔥 Sources */}
+            {/* 🔥 Expandable Sources */}
             {msg.role === "assistant" && msg.sources?.length ? (
-              <div className="text-sm text-neutral-400 ml-1">
-                <span className="font-semibold">Sources:</span>
-                <ul className="list-disc list-inside">
+              <details className="text-sm text-neutral-400 ml-1 cursor-pointer">
+                <summary className="font-semibold">Sources</summary>
+                <ul className="list-disc list-inside mt-1">
                   {msg.sources.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
                 </ul>
-              </div>
+              </details>
             ) : null}
           </div>
         ))}
 
-        {/* 🔥 Loading Indicator */}
+        {/* 🔥 Loading */}
         {loading && (
-          <div className="bg-neutral-800 px-4 py-3 rounded-xl w-fit">
+          <div className="bg-neutral-800 px-4 py-3 rounded-xl w-fit animate-pulse">
             Thinking...
           </div>
         )}
