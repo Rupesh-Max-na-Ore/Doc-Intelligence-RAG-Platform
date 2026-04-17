@@ -16,8 +16,8 @@ def ingest_books(limit=10):
 
     for link in links[:limit]:
         try:
-            
-            # 🔁 Retry mechanism (basic)
+
+            # Retry mechanism (basic)
             for attempt in range(3):
                 try:
                     html = fetch_page(link)
