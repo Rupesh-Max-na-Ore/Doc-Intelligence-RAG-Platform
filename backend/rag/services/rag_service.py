@@ -24,8 +24,8 @@ def index_books():
 def answer_query(query: str):
     documents, metadatas = retrieve_context(query)
 
-    # 🔥 LLM step
-    answer = generate_answer(query, documents)
+    # LLM step
+    answer = generate_answer(query, documents, metadatas)
 
     return {
         "query": query,

@@ -4,22 +4,40 @@ import requests
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 
 
-def generate_answer(query, context_docs):
-    context = "\n\n".join(context_docs)
+def generate_answer(query, context_docs, metadatas):
+    context = format_context(context_docs, metadatas)
 
     prompt = f"""
-You are an intelligent assistant.
+    You are a strict question-answering system.
 
-Answer the question based ONLY on the context below.
+    You MUST follow these rules:
 
-Context:
-{context}
+    1. Answer ONLY using the provided context.
+    2. Do NOT use outside knowledge.
+    3. If the answer is not in the context, say:
+    "I could not find the answer in the provided data."
+    4. Cite the book titles used in your answer.
+    5. Be concise and factual.
 
-Question:
-{query}
+    ---------------------
+    CONTEXT:
+    {context}
+    ---------------------
 
-Answer clearly and concisely.
-"""
+    QUESTION:
+    {query}
+
+    ---------------------
+
+    OUTPUT FORMAT:
+
+    Answer:
+    <your answer>
+
+    Sources:
+    - <book title 1>
+    - <book title 2>
+    """
 
     try:
         response = requests.post(
@@ -52,3 +70,15 @@ Answer clearly and concisely.
 
     except Exception as e:
         return f"LLM request failed: {str(e)}"
+    
+
+
+def format_context(context_docs, metadatas):
+    formatted = []
+
+    for i, (doc, meta) in enumerate(zip(context_docs, metadatas)):
+        formatted.append(
+            f"[Document {i+1}]\nTitle: {meta['title']}\nContent: {doc}"
+        )
+
+    return "\n\n".join(formatted)
