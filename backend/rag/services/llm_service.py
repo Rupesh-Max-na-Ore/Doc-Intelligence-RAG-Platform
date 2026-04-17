@@ -7,7 +7,7 @@ LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 def generate_answer(query, context_docs, metadatas):
     context = format_context(context_docs, metadatas)
 
-    MAX_CONTEXT_CHARS = 1500
+    MAX_CONTEXT_CHARS = 2500
 
     context = context[:MAX_CONTEXT_CHARS]
 
@@ -22,7 +22,16 @@ def generate_answer(query, context_docs, metadatas):
     "I could not find the answer in the provided data."
     4. Cite the book titles used in your answer.
     5. Be concise and factual.
-
+    6. Do NOT refer to documents as "Document 1", "Document 2". Instead, refer using book titles.
+    7. Ignore any unrelated books completely.
+    8. Do NOT mention irrelevant documents.
+    9. Do NOT explain what is irrelevant.
+    10. Do NOT suggest external knowledge.
+    11. CRITICAL RULE:
+    If the answer is not clearly supported by the context,
+    you MUST say:
+     "I could not find the answer in the provided data."
+    Do NOT use prior knowledge.
     ---------------------
     CONTEXT:
     {context}
@@ -51,7 +60,7 @@ def generate_answer(query, context_docs, metadatas):
                 "messages": [
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 0.7
+                "temperature": 0.85
             },
             timeout=180
         )
@@ -63,7 +72,8 @@ def generate_answer(query, context_docs, metadatas):
 
         # Safe extraction
         if "choices" in result:
-            return result["choices"][0]["message"]["content"]
+            answer = result["choices"][0]["message"]["content"]
+            return clean_answer(answer)
 
         # Handle error case
         elif "error" in result:
@@ -86,3 +96,17 @@ def format_context(context_docs, metadatas):
         )
 
     return "\n\n".join(formatted)
+
+def clean_answer(text):
+    if "Answer:" in text:
+        text = text.split("Answer:", 1)[1]
+
+    if "Sources:" in text:
+        text = text.split("Sources:", 1)[0]
+
+    # 🔥 remove Document references
+    text = text.replace("[Document 1]", "")
+    text = text.replace("[Document 2]", "")
+    text = text.replace("[Document 3]", "")
+
+    return text.strip()

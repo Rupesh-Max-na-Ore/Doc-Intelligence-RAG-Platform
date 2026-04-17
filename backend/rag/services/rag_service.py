@@ -34,10 +34,29 @@ def answer_query(query: str):
     answer = generate_answer(query, documents, metadatas)
 
 
-    unique_titles = list({meta["title"] for meta in metadatas})
+    answer_lower = answer.lower()
+
+    # strict failure detection
+    if "could not find the answer" in answer_lower:
+        return {
+            "query": query,
+            "answer": "I could not find the answer in the provided data.",
+            "sources": []
+        }
+
+    # normal case
+    filtered_titles = list({
+        meta["title"]
+        for meta in metadatas
+        if meta["title"].lower() in answer_lower
+    })
+
+    # fallback ONLY if answer exists
+    if not filtered_titles:
+        filtered_titles = list({meta["title"] for meta in metadatas})
 
     return {
         "query": query,
         "answer": answer,
-        "sources": unique_titles
+        "sources": filtered_titles
     }
