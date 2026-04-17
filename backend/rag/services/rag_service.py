@@ -3,23 +3,29 @@ from rag.services.embedding_service import get_embedding
 from rag.services.vector_store_service import add_document
 from rag.services.retrieval_service import retrieve_context
 from rag.services.llm_service import generate_answer
+from rag.utils.chunking import chunk_text
 
 
 def index_books():
     books = Book.objects.all()
 
     for book in books:
-        text = f"{book.title}. {book.description}"
+        full_text = f"{book.title}. {book.description}"
 
-        embedding = get_embedding(text)
+        chunks = chunk_text(full_text)
 
-        add_document(
-            doc_id=book.id,
-            text=text,
-            embedding=embedding,
-            metadata={"title": book.title}
-        )
+        for i, chunk in enumerate(chunks):
+            embedding = get_embedding(chunk)
 
+            add_document(
+                doc_id=f"{book.id}_{i}",   # 🔥 unique per chunk
+                text=chunk,
+                embedding=embedding,
+                metadata={
+                    "title": book.title,
+                    "chunk_index": i
+                }
+            )
 
 def answer_query(query: str):
     documents, metadatas = retrieve_context(query)
@@ -27,14 +33,11 @@ def answer_query(query: str):
     # LLM step
     answer = generate_answer(query, documents, metadatas)
 
+
+    unique_titles = list({meta["title"] for meta in metadatas})
+
     return {
         "query": query,
         "answer": answer,
-        "sources": [
-            {
-                "title": meta["title"],
-                "text": doc
-            }
-            for doc, meta in zip(documents, metadatas)
-        ]
+        "sources": unique_titles
     }

@@ -7,6 +7,10 @@ LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 def generate_answer(query, context_docs, metadatas):
     context = format_context(context_docs, metadatas)
 
+    MAX_CONTEXT_CHARS = 1500
+
+    context = context[:MAX_CONTEXT_CHARS]
+
     prompt = f"""
     You are a strict question-answering system.
 
@@ -49,19 +53,19 @@ def generate_answer(query, context_docs, metadatas):
                 ],
                 "temperature": 0.7
             },
-            timeout=60
+            timeout=180
         )
 
         result = response.json()
 
-        # 🔥 DEBUG (keep for now)
+        # DEBUG (keep for now)
         print("LLM RAW RESPONSE:", result)
 
-        # ✅ Safe extraction
+        # Safe extraction
         if "choices" in result:
             return result["choices"][0]["message"]["content"]
 
-        # ❌ Handle error case
+        # Handle error case
         elif "error" in result:
             return f"LLM Error: {result['error']}"
 

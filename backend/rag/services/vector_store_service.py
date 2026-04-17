@@ -14,7 +14,7 @@ def add_document(doc_id, text, embedding, metadata):
     )
 
 
-def query_similar(query_embedding, top_k=3):
+def query_similar(query_embedding, top_k=5):
     return collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k
